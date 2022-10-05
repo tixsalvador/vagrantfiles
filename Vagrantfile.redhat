@@ -1,0 +1,48 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+    config.vm.box = "centos/7"
+    config.vm.box_check_update = true
+    
+    # Added for vbguest install
+    #if Vagrant.has_plugin?("vagrant-vbguest") then
+    #  config.vbguest.auto_update = false
+    #end
+    #config.vbguest.installer_options = { allow_kernel_upgrade: true }
+
+    
+    config.vm.synced_folder '.', '/vagrant', disabled: true
+    config.vm.provision "shell", path: "provision.sh"
+    config.vm.provider "virtualbox" do |vb|
+      vb.customize ['modifyvm', :id, '--nested-hw-virt', 'on']
+    end
+  
+    $instance=2
+    (1..$instance).each do |i|
+           config.vm.define "broker0#{i}" do |broker|
+             broker.vm.hostname =  "broker0#{i}"
+             broker.vm.network "private_network", ip: "10.10.10.#{i+10}"
+             broker.vm.provider "virtualbox" do |v|
+              v.name = "broker0#{i}"
+              v.memory = 1024
+              v.cpus = 1
+             end
+             broker.vm.provision "file", source: "sk-server-broker-env", destination: "/etc/default/"
+           end
+    end
+
+    $instance=2
+    (1..$instance).each do |i|
+           config.vm.define "mp0#{i}" do |mp|
+             mp.vm.hostname =  "mp0#{i}"
+             mp.vm.network "private_network", ip: "10.10.10.#{i+20}"
+             mp.vm.provider "virtualbox" do |v|
+              v.name = "mp0#{i}"
+              v.memory = 1024
+              v.cpus = 1
+             end
+             mp.vm.provision "file", source: "sk-server-mp-env", destination: "/etc/default/"
+           end
+    end
+end
